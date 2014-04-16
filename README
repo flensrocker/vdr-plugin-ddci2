@@ -45,6 +45,12 @@ Building the plugin
 **
 **  NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE
 **
+**  You need to apply the
+**  "CiAdapter is no longer responsible for device mapping.patch" from the
+**  patches directory. Klaus has currently not decided to include my patch,
+**  but I guess he will, because it simplifies the Adapter/CamSlot
+**  relationship. 
+**
 **  This Plugin reqires version 0.9.13 of the ddbridge Kernel driver suite
 **  available here:
 **    http://download.digital-devices.de/download/linux/
@@ -80,6 +86,7 @@ Checkout the plugin source tree or unpack the tgz file below
 
 To checkout the source use:
   $ git clone git://github.com/jasmin-j/vdr-plugin-ddci2.git ddci2
+  $ git checkout devel_mtd
 
 If you have unpacked the tarball, the directory ddci2-<VERSION> needs to be
 renamed to ddci2. Otherwise the VDR plugin make system will not find it.
