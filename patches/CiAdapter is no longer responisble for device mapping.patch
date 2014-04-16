@@ -1,0 +1,120 @@
+diff --git a/ci.c b/ci.c
+index 6b0805d..5358eff 100644
+--- a/ci.c
++++ b/ci.c
+@@ -1508,7 +1508,6 @@ public:
+ cCiAdapter::cCiAdapter(void)
+ :cThread("CI adapter")
+ {
+-  assignedDevice = NULL;
+   for (int i = 0; i < MAX_CAM_SLOTS_PER_ADAPTER; i++)
+       camSlots[i] = NULL;
+ }
+@@ -1534,6 +1533,16 @@ void cCiAdapter::AddCamSlot(cCamSlot *CamSlot)
+      }
+ }
+ 
++cCamSlot *cCiAdapter::ItCamSlot(int &iter)
++{
++  for (; iter < MAX_CAM_SLOTS_PER_ADAPTER;) {
++      cCamSlot *found = camSlots[iter++];
++      if (found)
++         return found;
++      }
++  return NULL;
++}
++
+ void cCiAdapter::Action(void)
+ {
+   cTPDU TPDU;
+@@ -1561,6 +1570,7 @@ void cCiAdapter::Action(void)
+ cCamSlot::cCamSlot(cCiAdapter *CiAdapter, bool ReceiveCaPids)
+ {
+   ciAdapter = CiAdapter;
++  assignedDevice = NULL;
+   caPidReceiver = ReceiveCaPids ? new cCaPidReceiver : NULL;
+   slotIndex = -1;
+   lastModuleStatus = msReset; // avoids initial reset log message
+@@ -1578,8 +1588,8 @@ cCamSlot::cCamSlot(cCiAdapter *CiAdapter, bool ReceiveCaPids)
+ 
+ cCamSlot::~cCamSlot()
+ {
+-  if (ciAdapter && ciAdapter->assignedDevice)
+-     ciAdapter->assignedDevice->SetCamSlot(NULL);
++  if (assignedDevice)
++     assignedDevice->SetCamSlot(NULL);
+   delete caPidReceiver;
+   CamSlots.Del(this, false);
+   DeleteAllConnections();
+@@ -1590,13 +1600,13 @@ bool cCamSlot::Assign(cDevice *Device, bool Query)
+   cMutexLock MutexLock(&mutex);
+   if (ciAdapter) {
+      if (ciAdapter->Assign(Device, true)) {
+-        if (!Device && ciAdapter->assignedDevice)
+-           ciAdapter->assignedDevice->SetCamSlot(NULL);
++        if (!Device && assignedDevice)
++           assignedDevice->SetCamSlot(NULL);
+         if (!Query) {
+            StopDecrypting();
+            source = transponder = 0;
+            if (ciAdapter->Assign(Device)) {
+-              ciAdapter->assignedDevice = Device;
++              assignedDevice = Device;
+               if (Device) {
+                  Device->SetCamSlot(this);
+                  dsyslog("CAM %d: assigned to device %d", slotNumber, Device->DeviceNumber() + 1);
+@@ -1613,17 +1623,6 @@ bool cCamSlot::Assign(cDevice *Device, bool Query)
+   return false;
+ }
+ 
+-cDevice *cCamSlot::Device(void)
+-{
+-  cMutexLock MutexLock(&mutex);
+-  if (ciAdapter) {
+-     cDevice *d = ciAdapter->assignedDevice;
+-     if (d && d->CamSlot() == this)
+-        return d;
+-     }
+-  return NULL;
+-}
+-
+ void cCamSlot::NewConnection(void)
+ {
+   cMutexLock MutexLock(&mutex);
+diff --git a/ci.h b/ci.h
+index ac029c2..4e373c5 100644
+--- a/ci.h
++++ b/ci.h
+@@ -79,11 +79,14 @@ enum eModuleStatus { msNone, msReset, msPresent, msReady };
+ class cCiAdapter : public cThread {
+   friend class cCamSlot;
+ private:
+-  cDevice *assignedDevice;
+   cCamSlot *camSlots[MAX_CAM_SLOTS_PER_ADAPTER];
+   void AddCamSlot(cCamSlot *CamSlot);
+        ///< Adds the given CamSlot to this CI adapter.
+ protected:
++  cCamSlot *ItCamSlot(int &iter);
++       ///< Iterates over all added CamSlots of this adapter. iter have to be
++       ///< initialized with 0 and is required to store the iteration state.
++       ///< returns NULL, if no further CamSlot is found.
+   virtual void Action(void);
+        ///< Handles the attached CAM slots in a separate thread.
+        ///< The derived class must call the Start() function to
+@@ -128,6 +131,7 @@ private:
+   cMutex mutex;
+   cCondVar processed;
+   cCiAdapter *ciAdapter;
++  cDevice *assignedDevice;
+   cReceiver *caPidReceiver;
+   int slotIndex;
+   int slotNumber;
+@@ -164,7 +168,7 @@ public:
+        ///< device it was previously assigned to. The value of Query
+        ///< is ignored in that case, and this function always returns
+        ///< 'true'.
+-  cDevice *Device(void);
++  cDevice *Device(void) { return assignedDevice; }
+        ///< Returns the device this CAM slot is currently assigned to.
+   bool WantsTsData(void) const { return caPidReceiver != NULL; }
+        ///< Returns true if this CAM slot wants to receive the TS data through
