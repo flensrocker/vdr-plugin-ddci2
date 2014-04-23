@@ -1,0 +1,23 @@
+Source: vdr-plugin-ddci2
+Section: video
+Priority: extra
+Maintainer: Lars Hanisch <dvb@flensrocker.de>
+Build-Depends: debhelper (>= 8), vdr-dev (>= 2.1.0), pkg-config
+Standards-Version: 3.9.1
+Homepage: https://github.com/jasmin-j/vdr-plugin-ddci2
+
+Package: vdr-plugin-ddci2
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${vdr:Depends}
+Description: A VDR plugin, ci-support for DD/Cine/L4M ci-adapter
+ Support for the CI of cards by Digital Devices/Cine/Linux4Media
+ 
+Package: vdr-plugin-ddci2-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: vdr-plugin-ddci2 (= ${binary:Version}), ${misc:Depends}
+Description: debugging symbols for vdr-plugin-ddci2
+ .
+ This package contains only the debugging symbols for vdr-plugin-ddci2
+
